@@ -1,6 +1,6 @@
 export PotentialParameters, PairPotential, MLPotential
 export Dummy
-export acceleration!, potential_energy
+export acceleration!, potential_energy, potential_force
 
 abstract type PotentialParameters end
 
@@ -15,7 +15,23 @@ abstract type FieldPotentials <: PotentialParameters end
 struct Dummy <: PotentialParameters
 end
 
-function acceleration!(dv, v, u, pot::PotentialParameters, params)
+@inline function potential_energy(r, pot::T) where T <: PotentialParameters
+    if MDBase.States.FreeRun
+        0.0
+    else
+        throw("Acceleration is not implemented for potential :: $(typeof(pot)). Signature: acceleration!(dv, v, u, pot::$(typeof(pot)), params).")
+    end
+end
+
+@inline function potential_force(r, pot::T) where T <: PotentialParameters
+    if MDBase.States.FreeRun
+        0.0
+    else
+        throw("Acceleration is not implemented for potential :: $(typeof(pot)). Signature: acceleration!(dv, v, u, pot::$(typeof(pot)), params).")
+    end
+end
+
+function acceleration!(dv, v, u, pot::T, params) where T <: PotentialParameters
     if MDBase.States.FreeRun
         dv
     else
@@ -23,7 +39,7 @@ function acceleration!(dv, v, u, pot::PotentialParameters, params)
     end
 end
 
-function potential_energy(u, pot::PotentialParameters, params)
+function potential_energy(u, pot::T, params) where T <: PotentialParameters
     if MDBase.States.FreeRun
         0.0
     else

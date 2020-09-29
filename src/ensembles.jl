@@ -60,7 +60,7 @@ end
     end
 end
 
-@inline function apply!(v, u, params, t, ensemble::ENS)
+@inline function apply!(v, u, params, t, ensemble::E) where E <: Ensemble
     for ctype in ensemble.ctypes
         apply!(v, u, params, t, ctype)
     end

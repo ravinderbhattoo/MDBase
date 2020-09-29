@@ -39,7 +39,11 @@ Fill cells with particles.
 function get_cells(x::Array{Float64, 2}, horizon::Float64)
     _min = minimum(x, dims=2)
     _max = maximum(x, dims=2)
-    N = max.(Int.(1 .+ floor.((_max-_min)/horizon.-1.0e-6)),1)
+    _range = @. _max - _min
+    N = min.(max.(Int.(1 .+ floor.((_range)/horizon.-1.0e-6)),1), 10)
+    horizon = maximum(@. (_range)/N)
+    N = min.(max.(Int.(1 .+ floor.((_range)/horizon.-1.0e-6)),1), 10)
+
     cells = [Vector{Int}() for i in 1:prod(N)]
     cell_neighs = Vector{Vector{Int}}(undef, prod(N))
     for k in 1:N[3]

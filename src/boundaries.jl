@@ -141,14 +141,13 @@ function applybc!(x, v, BC::OpenBoundary)
 end
 
 function applybc!(x, v, BC::PeriodicBoundary)
-    @inbounds for i in eachindex(x)
-        if x[i]>BC.X1
-            x[i] -= BC.L
-        elseif x[i]<BC.X0
-            x[i] += BC.L
-        else
-        end
-    end
+    # @inbounds for i in eachindex(x)
+    #     if x[i]<BC.X0 || x[i]>BC.X1
+    #         x[i] = BC.X0 - fld(x[i]-BC.X0, BC.L)*BC.L
+    #     else
+    #     end
+    # end
+    @. x = x - fld(x - BC.X0, BC.L) * BC.L
 end
 
 function applybc!(x, v, BC::ReflectiveBoundary)

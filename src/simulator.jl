@@ -1,11 +1,13 @@
-export AbstractSimObj, MDSim, simulate, integrator, sim_init, MDParams, SParams, MParams, AbstractMDParams
+export AbstractSimObj, MDSim, simulate, integrator, sim_init, MDParams, SParams, MParams, AbstractMDParams, IntgParams
 
 export get_acceleration, get_potential_energy
+
+export @SParams_generic_fields, @MParams_generic_fields
 
 abstract type AbstractSimObj end
 abstract type AbstractMDParams end
 
-struct SParams{SimObj <: AbstractSimObj, I <: IntType, F <: FloatType}
+@def SParams_generic_fields begin
     sim::SimObj
     N::I
     kb::F
@@ -13,15 +15,23 @@ struct SParams{SimObj <: AbstractSimObj, I <: IntType, F <: FloatType}
     acc::Array{F, 3}
 end
 
-mutable struct MParams{I <: IntType, F <: FloatType}
+struct SParams{SimObj <: AbstractSimObj, I <: IntType, F <: FloatType} <: AbstractMDParams
+    @SParams_generic_fields
+end
+
+@def MParams_generic_fields begin
     step::I
     Temperature::F
     ke::F
 end
 
-struct MDParams <: AbstractMDParams
-    S::SParams
-    M::MParams
+mutable struct MParams{I <: IntType, F <: FloatType} <: AbstractMDParams
+    @MParams_generic_fields
+end
+
+struct MDParams{T1 <: AbstractMDParams, T2 <: AbstractMDParams} <: AbstractMDParams
+    S::T1
+    M::T2
 end
 
 struct NullMDParams <: AbstractMDParams
@@ -33,7 +43,7 @@ struct IntgParams{T1 <: Ensemble, T2 <: AbstractMDParams} <: AbstractMDParams
 end
 
 function SOODE(v, u, p, t)
-    ensemble, params = p.ensemble, p.params
+    ensemble, params = p[1].ensemble, p[1].params
     dv = get_acceleration(v, u, params, params.S.sim)
     for ens in ensemble
         ddu!(dv, v, u, params, t, ens)
@@ -71,7 +81,7 @@ struct MDSim{T1 <: FloatType, T2 <: IntType, T3 <: PotentialParameters, T4 <: Si
     others::pType
 end
 
-function MDSim(u0, v0, mass, interatomic_potentials, boundary_condition; a_ids = nothing, m_ids = nothing, Δτ = Types.F(1.0), save_every = Types.I(100), thermo_save_every = Types.I(100))
+function MDSim(u0, v0, mass, interatomic_potentials, boundary_condition; a_ids = nothing, m_ids = nothing, Δτ = Types.F(1.0), save_every = Types.I(100), thermo_save_every = Types.I(100), others=NullMDParams())
 
     if a_ids==nothing
         a_ids = ones(Types.I, size(u0,2))
@@ -80,7 +90,7 @@ function MDSim(u0, v0, mass, interatomic_potentials, boundary_condition; a_ids =
         m_ids = copy(a_ids)
     end
 
-    MDSim(u0, v0, mass, a_ids, m_ids, Types.F(Δτ), save_every, thermo_save_every, interatomic_potentials, boundary_condition, NullMDParams())
+    MDSim(u0, v0, mass, a_ids, m_ids, Types.F(Δτ), save_every, thermo_save_every, interatomic_potentials, boundary_condition, others)
 end
 
 

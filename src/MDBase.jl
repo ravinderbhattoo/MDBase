@@ -1,6 +1,6 @@
 module MDBase
 
-export Types
+export Types, FloatType, IntType
 
 using OrdinaryDiffEq: solve, init, step!, VelocityVerlet, DiscreteCallback, CallbackSet, SecondOrderODEProblem, get_du, ODESolution
 using Reexport

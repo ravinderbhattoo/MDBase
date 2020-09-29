@@ -44,7 +44,7 @@ function updates_condition_f(u,t,integrator)
 end
 
 function updates_affect_f!(integrator)
-    ensemble, params = integrator.p.ensemble, integrator.p.params
+    ensemble, params = integrator.p[1].ensemble, integrator.p[1].params
     params.M.step += 1
     N = params.S.N
     ux, uy, uz, vx, vy, vz = get_view_from_u(integrator.u)
@@ -55,6 +55,9 @@ function updates_affect_f!(integrator)
     # apply temperature updation required for some tasks
     params.M.ke = 0.5sum(@. params.S.sim.mass*(vx^2 + vy^2 + vz^2))
     params.M.Temperature = 2params.M.ke/(3params.S.N*params.S.kb)
+
+    # apply ensemble
+    ensemble_affect_f!(integrator.u.x[1], integrator.u.x[2], params, integrator.t, ensemble)
 
     # updating u and v
     integrator.sol.u[end].x[1] .= integrator.u.x[1]
@@ -68,14 +71,26 @@ end
 # >>>>> Save acceleration                                  #
 ############################################################
 function saveacc_condition_f(u,t,integrator)
-    ensemble, params = integrator.p.ensemble, integrator.p.params
+    ensemble, params = integrator.p[1].ensemble, integrator.p[1].params
     params.M.step%params.S.sim.save_every==0 || params.M.step==1
 end
 function saveacc_affect_f!(integrator)
-    ensemble, params = integrator.p.ensemble, integrator.p.params
+    ensemble, params = integrator.p[1].ensemble, integrator.p[1].params
     du = get_du(integrator)
     params.S.acc[:,:,params.M.step] .= du.x[1]
 end
 ############################################################
 # <<<<< Save acceleration                                  #
+############################################################
+
+############################################################
+# >>>>> Appyl ensemble                                     #
+############################################################
+function ensemble_affect_f!(v, u, params, t, ensemble)
+    for ens in ensemble
+        apply!(v, u, params, t, ens)
+    end
+end
+############################################################
+# <<<<< Apply ensemble                                     #
 ############################################################
