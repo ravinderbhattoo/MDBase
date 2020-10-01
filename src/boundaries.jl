@@ -37,7 +37,7 @@ struct PeriodicBoundary{T} <: BCTypes where T
 end
 
 function Base.show(stream::IO, BC::PeriodicBoundary)
-    println(stream, "Periodic Boundary ($(BC.L))")
+    println(stream, "Periodic Boundary (Low: $(BC.X0) High: $(BC.X1) L: $(BC.L))")
 end
 
 """
@@ -124,6 +124,14 @@ struct GeneralBC{T1 <: BCTypes, T2 <: BCTypes, T3 <: BCTypes} <: SimulationBound
     Y::T2
     Z::T3
 end
+
+function Base.show(stream::IO, BC::GeneralBC)
+    println(stream, "General(Orthogonal) Boundary Condition:")
+    print(stream, "\tDirection 1: "); show(stream, BC.X)
+    print(stream, "\tDirection 2: "); show(stream, BC.Y)
+    print(stream, "\tDirection 3: "); show(stream, BC.Z)
+end
+
 
 function CubicPBC(L::T) where T
     X = PeriodicBoundary(0L,L,L)
