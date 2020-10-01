@@ -1,6 +1,6 @@
-export AbstractSimObj, MDSim, simulate, integrator, sim_init, MDParams, SParams, MParams, AbstractMDParams, IntgParams
+export AbstractSimObj, MDSim, simulate, integrator, _stage, sim_init, MDParams, SParams, MParams, AbstractMDParams, IntgParams
 
-export get_acceleration, get_potential_energy
+export get_acceleration, set_acceleration!, get_potential_energy
 
 export @SParams_generic_fields, @MParams_generic_fields
 
@@ -42,13 +42,12 @@ struct IntgParams{T1 <: Ensemble, T2 <: AbstractMDParams} <: AbstractMDParams
     params::T2
 end
 
-function SOODE(v, u, p, t)
+function SOODE(dv, v, u, p, t)
     ensemble, params = p[1].ensemble, p[1].params
-    dv = get_acceleration(v, u, params, params.S.sim)
+    set_acceleration!(dv, v, u, params, params.S.sim)
     for ens in ensemble
         ddu!(dv, v, u, params, t, ens)
     end
-    return dv
 end
 
 function get_acceleration(v::Array{T,2}, u::Array{T,2}, params, sim::SimObj) where {T <: FloatType, SimObj <: AbstractSimObj}
@@ -57,6 +56,12 @@ function get_acceleration(v::Array{T,2}, u::Array{T,2}, params, sim::SimObj) whe
         acceleration!(dv, v, u, pot, params)
     end
     dv
+end
+
+function set_acceleration!(dv::Array{T,2}, v::Array{T,2}, u::Array{T,2}, params, sim::SimObj) where {T <: FloatType, SimObj <: AbstractSimObj}
+    for pot in params.S.sim.interatomic_potentials
+        acceleration!(dv, v, u, pot, params)
+    end
 end
 
 function get_potential_energy(u::Array{T,2}, params, sim::SimObj) where {T <: FloatType, SimObj <: AbstractSimObj}
@@ -93,23 +98,32 @@ function MDSim(u0, v0, mass, interatomic_potentials, boundary_condition; a_ids =
     MDSim(u0, v0, mass, a_ids, m_ids, Types.F(Δτ), save_every, thermo_save_every, interatomic_potentials, boundary_condition, others)
 end
 
-
-function simulate(Sim::T, n::Types.I, ensemble::Array{T2,1}; verbose::Bool=false) where {T <: AbstractSimObj, T2 <: Ensemble}
+function _stage(Sim::T, n::Types.I, ensemble::Array{T2,1}; verbose::Bool=false) where {T <: AbstractSimObj, T2 <: Ensemble}
     tspan = (0.0*Sim.Δτ, n*Sim.Δτ)
     params = exe_at_start(Sim, n)
     print_thermo_at_start(params, Sim, verbose)
     p = IntgParams(ensemble, params)
-    prob = SecondOrderODEProblem(SOODE, Sim.v0, Sim.u0, tspan, p, callback=mdcallbackset())
-    solve(prob, VelocityVerlet(), dt=Sim.Δτ, saveat=tspan[1]:Sim.save_every*Sim.Δτ:tspan[2])
+
+    prob = SecondOrderODEProblem(SOODE, Sim.v0, Sim.u0, tspan, [p], callback=mdcallbackset())
+    return prob, Sim.Δτ, tspan[1]:Sim.save_every*Sim.Δτ:tspan[2]
+end
+
+function _simulate(prob::T, dt::F, saveat::Array{F,1}) where {T,F}
+    sol = solve(prob, VelocityVerlet(), dt=dt, saveat=saveat, cb=mdcallbackset())
+    sol.prob.p[1].params.M.step = 0
+    sol
+end
+
+function simulate(Sim::T, n::Types.I, ensemble::Array{T2,1}; verbose::Bool=false) where {T <: AbstractSimObj, T2 <: Ensemble}
+    prob, dt, saveat = _stage(Sim, n, ensemble, verbose=verbose)
+    sol = solve(prob, VelocityVerlet(), dt=dt, saveat=saveat, cb=mdcallbackset())
+    sol.prob.p[1].params.M.step = 0
+    sol
 end
 
 function integrator(Sim::T, n::Types.I, ensemble::Array{T2,1}; verbose::Bool=false) where {T <: AbstractSimObj, T2 <: Ensemble}
-    tspan = (0.0*Sim.Δτ, n*Sim.Δτ)
-    params = exe_at_start(Sim, n)
-    print_thermo_at_start(params, Sim, verbose)
-    p = IntgParams(ensemble, params)
-    prob = SecondOrderODEProblem(SOODE, Sim.v0, Sim.u0, tspan, p, callback=mdcallbackset())
-    init(prob, VelocityVerlet(), dt=Sim.Δτ)
+    prob, dt, saveat = _stage(Sim, n, ensemble, verbose=verbose)
+    init(prob, VelocityVerlet(), dt=dt, cb=mdcallbackset())
 end
 
 function exe_at_start(sim::T, n::Types.I) where T <: AbstractSimObj
