@@ -16,8 +16,12 @@ function writedata(filename, vals; comment=nothing)
     end
 end
 
-function write_trajectory_xyz(filename, res::ODESolution)
+function write_trajectory_xyz(filename, res::ODESolution; overwrite=false)
     mkpath("$(filename)_ovito_files/")
+    if overwrite
+        rm("$(filename)_ovito_files/", recursive=true)
+        mkpath("$(filename)_ovito_files/")
+    end
     params = res.prob.p[1].params
     for i in 1:length(res.t)
         t = res.t[i]
@@ -38,9 +42,13 @@ function write_trajectory_xyz(filename, res::ODESolution)
     print("Trajectory has been written.")
 end
 
-function write_trajectory_pvt(filename, res::ODESolution)
+function write_trajectory_pvt(filename, res::ODESolution; overwrite=false)
     pvd = paraview_collection(filename)
     mkpath("$(filename)_pvd_files/")
+    if overwrite
+        rm("$(filename)_pvd_files/", recursive=true)
+        mkpath("$(filename)_pvd_files/")
+    end
     params = res.prob.p[1].params
     for i in 1:length(res.t)
         t = res.t[i]
