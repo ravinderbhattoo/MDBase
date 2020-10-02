@@ -106,6 +106,7 @@ function _stage(sim::T, n::Types.I, ensemble::Array{T2,1}; verbose::Bool=false) 
     print_thermo_at_start(params, sim, verbose)
 
     function SOODE(dv, v, u, p, t)
+        fill!(dv, 0.0)
         set_acceleration!(dv, v, u, params, sim)
         for ens in ensemble
             ddu!(dv, v, u, params, t, ens)
