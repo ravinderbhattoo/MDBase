@@ -18,7 +18,7 @@ end
 end
 
 
-function mdcallbackset(params, ensemble;list=false)
+function mdcallbackset(params, ensemble; list=false)
     cb1 = DiscreteCallback(updates_condition_f(params, ensemble), updates_affect_f!(params, ensemble), save_positions=(false,false))
     cb2 = DiscreteCallback(saveacc_condition_f(params, ensemble), saveacc_affect_f!(params, ensemble), save_positions=(false,false))
     if !list
@@ -28,8 +28,8 @@ function mdcallbackset(params, ensemble;list=false)
     end
 end
 
-function mdcallbackset(cbs)
-    lisT = mdcallbackset(list=true)
+function mdcallbackset(params, enseble, cbs)
+    lisT = mdcallbackset(params, ensemble, list=true)
     for i in cbs
         push!(lisT, i)
     end
@@ -79,7 +79,8 @@ end
 function saveacc_affect_f!(params, ensemble)
     return (integrator) -> begin
         du = get_du(integrator)
-        params.S.acc[:,:,params.M.step] .= du.x[1]
+        n = fld(params.M.step, params.S.sim.thermo_save_every) + 1
+        params.S.acc[:,:,n] .= du.x[1]
     end
 end
 ############################################################
