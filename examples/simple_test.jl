@@ -12,11 +12,14 @@ ensembles = [ENS([],[])]
 
 sim = MDSim(u0, v0, mass, potentials, pbc, Δτ=0.1, save_every=1, thermo_save_every=1)
 
-res = simulate(sim, 100, ensembles, verbose=true)
+@btime res, parameters = simulate(sim, 100, ensembles, verbose=true)
 
+# prob, dt, saveat, parameters = _stage(sim, 100, ensembles, verbose=true)
+# using BenchmarkTools
+# @time MDBase._simulate(prob, dt, saveat, parameters)
 
-write_trajectory_pvt("./output/sample", res)
-write_trajectory_xyz("./output/sample", res)
+write_trajectory_pvt("./output/sample", res, parameters)
+write_trajectory_xyz("./output/sample", res, parameters)
 
 
 #

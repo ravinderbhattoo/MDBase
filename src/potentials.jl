@@ -39,7 +39,7 @@ function acceleration!(dv, v, u, pot::T, params) where T <: PotentialParameters
     end
 end
 
-function potential_energy(u, pot::T, params) where T <: PotentialParameters
+function potential_energy(v, u, pot::T, params) where T <: PotentialParameters
     if MDBase.States.FreeRun
         0.0
     else

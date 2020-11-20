@@ -18,9 +18,9 @@ end
 end
 
 
-function mdcallbackset(;list=false)
-    cb1 = DiscreteCallback(updates_condition_f, updates_affect_f!, save_positions=(false,false))
-    cb2 = DiscreteCallback(saveacc_condition_f, saveacc_affect_f!, save_positions=(false,false))
+function mdcallbackset(params, ensemble; list=false)
+    cb1 = DiscreteCallback(updates_condition_f(params, ensemble), updates_affect_f!(params, ensemble), save_positions=(false,false))
+    cb2 = DiscreteCallback(saveacc_condition_f(params, ensemble), saveacc_affect_f!(params, ensemble), save_positions=(false,false))
     if !list
         CallbackSet(cb1, cb2)
     else
@@ -28,8 +28,8 @@ function mdcallbackset(;list=false)
     end
 end
 
-function mdcallbackset(cbs)
-    lisT = mdcallbackset(list=true)
+function mdcallbackset(params, ensemble, cbs)
+    lisT = mdcallbackset(params, ensemble, list=true)
     for i in cbs
         push!(lisT, i)
     end
@@ -39,29 +39,30 @@ end
 ############################################################
 # >>>>> Updates                                            #
 ############################################################
-function updates_condition_f(u,t,integrator)
-    true
+function updates_condition_f(params, ensemble)
+    return (u,t,integrator) -> true
 end
 
-function updates_affect_f!(integrator)
-    ensemble, params = integrator.p[1].ensemble, integrator.p[1].params
-    params.M.step += 1
-    N = params.S.N
-    ux, uy, uz, vx, vy, vz = get_view_from_u(integrator.u)
+function updates_affect_f!(params, ensemble)
+    return (integrator) -> begin
+        params.M.step += 1
+        N = params.S.N
+        ux, uy, uz, vx, vy, vz = get_view_from_u(integrator.u)
 
-    # apply boundary conditions
-    apply_simulation_bc!(ux, uy, uz, vx, vy, vz, params.S.sim.boundary_condition)
+        # apply boundary conditions
+        apply_simulation_bc!(ux, uy, uz, vx, vy, vz, params.S.sim.boundary_condition)
 
-    # apply temperature updation required for some tasks
-    params.M.ke = 0.5sum(@. params.S.sim.mass*(vx^2 + vy^2 + vz^2))
-    params.M.Temperature = 2params.M.ke/(3params.S.N*params.S.kb)
+        # apply temperature updation required for some tasks
+        params.M.ke = 0.5sum(@. params.S.sim.mass*(vx^2 + vy^2 + vz^2))
+        params.M.Temperature = 2params.M.ke/(3params.S.N*params.S.kb)
 
-    # apply ensemble
-    ensemble_affect_f!(integrator.u.x[1], integrator.u.x[2], params, integrator.t, ensemble)
+        # apply ensemble
+        ensemble_affect_f!(integrator.u.x[1], integrator.u.x[2], params, integrator.t, ensemble)
 
-    # updating u and v
-    integrator.sol.u[end].x[1] .= integrator.u.x[1]
-    integrator.sol.u[end].x[2] .= integrator.u.x[2]
+        # updating u and v
+        integrator.sol.u[end].x[1] .= integrator.u.x[1]
+        integrator.sol.u[end].x[2] .= integrator.u.x[2]
+    end
 end
 ############################################################
 # <<<<< Updates                                            #
@@ -70,14 +71,17 @@ end
 ############################################################
 # >>>>> Save acceleration                                  #
 ############################################################
-function saveacc_condition_f(u,t,integrator)
-    ensemble, params = integrator.p[1].ensemble, integrator.p[1].params
-    params.M.step%params.S.sim.save_every==0 || params.M.step==1
+function saveacc_condition_f(params, ensemble)
+    return (u,t,integrator) -> begin
+        params.M.step%params.S.sim.save_every==0 || params.M.step==1
+        end
 end
-function saveacc_affect_f!(integrator)
-    ensemble, params = integrator.p[1].ensemble, integrator.p[1].params
-    du = get_du(integrator)
-    params.S.acc[:,:,params.M.step] .= du.x[1]
+function saveacc_affect_f!(params, ensemble)
+    return (integrator) -> begin
+        du = get_du(integrator)
+        n = fld(params.M.step, params.S.sim.thermo_save_every) + 1
+        params.S.acc[:,:,n] .= du.x[1]
+    end
 end
 ############################################################
 # <<<<< Save acceleration                                  #
