@@ -47,11 +47,11 @@ end
 
 
 @inline function ddu(v, u, params, t, ensemble::ENS)
-    acceleration = 0*v
+    ddu = 0*v
     for etype in ensemble.etypes
-        ddu!(acceleration, v, u, params, t, etype)
+        ddu!(ddu, v, u, params, t, etype)
     end
-    return acceleration
+    return ddu
 end
 
 @inline function ddu!(ddu, v, u, params, t, ensemble::ENS)

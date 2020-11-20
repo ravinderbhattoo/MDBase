@@ -28,7 +28,7 @@ function mdcallbackset(params, ensemble; list=false)
     end
 end
 
-function mdcallbackset(params, enseble, cbs)
+function mdcallbackset(params, ensemble, cbs)
     lisT = mdcallbackset(params, ensemble, list=true)
     for i in cbs
         push!(lisT, i)
