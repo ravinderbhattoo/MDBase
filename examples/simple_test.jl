@@ -12,7 +12,7 @@ ensembles = [ENS([],[])]
 
 sim = MDSim(u0, v0, mass, potentials, pbc, Δτ=0.1, save_every=1, thermo_save_every=1)
 
-@btime res, parameters = simulate(sim, 100, ensembles, verbose=true)
+res, parameters = simulate(100, sim, ensembles, verbose=true)
 
 # prob, dt, saveat, parameters = _stage(sim, 100, ensembles, verbose=true)
 # using BenchmarkTools

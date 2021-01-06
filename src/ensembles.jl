@@ -54,12 +54,22 @@ end
     return ddu
 end
 
+"""
+    ddu!(ddu, v, u, params, t, ensemble::ENS)
+
+Apply Ensemble by changing equation of motion in differential equtions.
+"""
 @inline function ddu!(ddu, v, u, params, t, ensemble::ENS)
     for etype in ensemble.etypes
         ddu!(ddu, v, u, params, t, etype)
     end
 end
 
+"""
+    apply!(v, u, params, t, ensemble::E) where E <: Ensemble
+
+Apply Ensemble using callbacks in differential equtions.
+"""
 @inline function apply!(v, u, params, t, ensemble::E) where E <: Ensemble
     for ctype in ensemble.ctypes
         apply!(v, u, params, t, ctype)

@@ -66,7 +66,7 @@ end
 
 Calculate neighbors for each particle (inplace).
 """
-function find_neighbors!(neighbors::Array{Int64, 2}, x::Array{Float64, 2}, horizon::Float64, BC)
+function find_neighbors!(neighbors::Array{Int64, 2}, distance2_::Array{Float64, 2}, x::Array{Float64, 2}, horizon::Float64, BC)
     max_neighs = size(neighbors, 1)
     h2 = horizon^2
     cells, cell_neighs = get_cells(x, horizon)
@@ -84,6 +84,7 @@ function find_neighbors!(neighbors::Array{Int64, 2}, x::Array{Float64, 2}, horiz
                             ind += 1
                             if ind<=max_neighs
                                 neighbors[ind, ca] = fa
+                                distance2_[ind, ca] = r2
                             else
                                 error("Neighbors are more($ind) than capacity($max_neighs) allocated. Please increase neighbors maximum capacity.")
                             end
@@ -98,14 +99,20 @@ function find_neighbors!(neighbors::Array{Int64, 2}, x::Array{Float64, 2}, horiz
 end
 
 
+
 """
     find_neighbors(x::Array{Float64, 2}, horizon::Float64)
 
 Calculate neighbors for each particle.
 """
-function find_neighbors(x::Array{Float64, 2}, horizon::Float64, BC, max_neigh::Int64; hard_max::Int64=0)::Array{Int64, 2}
+function find_neighbors(x::Array{Float64, 2}, horizon::Float64, BC, max_neigh::Int64; hard_max::Int64=0, with_distance2=false)
     max_neigh = max(hard_max, min(max_neigh, size(x, 2)))
     neighbors = zeros(Int64, max_neigh, size(x, 2))
-    find_neighbors!(neighbors, x, horizon, BC)
-    return neighbors
+    distance2_ = zeros(Float64, max_neigh, size(x, 2))
+    find_neighbors!(neighbors, distance2_, x, horizon, BC)
+    if !with_distance2
+        return neighbors
+    else
+        return neighbors, distance2_
+    end
 end

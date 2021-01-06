@@ -79,7 +79,7 @@ end
 function saveacc_affect_f!(params, ensemble)
     return (integrator) -> begin
         du = get_du(integrator)
-        n = fld(params.M.step, params.S.sim.thermo_save_every) + 1
+        n = fld(params.M.step, params.S.sim.save_every) + 1
         params.S.acc[:,:,n] .= du.x[1]
     end
 end

@@ -23,7 +23,7 @@ end
     acc::Array{F, 3}
 end
 
-struct SParams{SimObj <: AbstractSimObj, I <: IntType, F <: FloatType} <: AbstractMDParams
+struct SParams{I <: IntType, SimObj <: AbstractSimObj, F <: FloatType} <: AbstractMDParams
     @SParams_generic_fields
 end
 
@@ -50,19 +50,19 @@ struct IntgParams{T1 <: Ensemble, T2 <: AbstractMDParams} <: AbstractMDParams
     params::T2
 end
 
-function get_acceleration(v::Array{T,2}, u::Array{T,2}, params, sim::SimObj) where {T <: FloatType, SimObj <: AbstractSimObj}
+function get_acceleration(v::Array{T,2}, u::Array{T,2}, params) where {T <: FloatType}
     dv = zeros(Types.F, size(v))
-    set_acceleration!(dv, v, u, params, sim)
+    set_acceleration!(dv, v, u, params)
     dv
 end
 
-function set_acceleration!(dv::Array{T,2}, v::Array{T,2}, u::Array{T,2}, params, sim::SimObj) where {T <: FloatType, SimObj <: AbstractSimObj}
+function set_acceleration!(dv::Array{T,2}, v::Array{T,2}, u::Array{T,2}, params) where {T <: FloatType}
     for pot in params.S.sim.interatomic_potentials
         acceleration!(dv, v, u, pot, params)
     end
 end
 
-function get_potential_energy(v::Array{T,2}, u::Array{T,2}, params, sim::SimObj) where {T <: FloatType, SimObj <: AbstractSimObj}
+function get_potential_energy(v::Array{T,2}, u::Array{T,2}, params) where {T <: FloatType}
     pe = 0.0
     for pot in params.S.sim.interatomic_potentials
         pe += potential_energy(v, u, pot, params)
@@ -70,7 +70,7 @@ function get_potential_energy(v::Array{T,2}, u::Array{T,2}, params, sim::SimObj)
     pe
 end
 
-struct MDSim{T1 <: FloatType, T2 <: IntType, T3 <: PotentialParameters, T4 <: SimulationBoundaries, pType <: AbstractMDParams} <: AbstractSimObj
+struct MDSim{T1 <: FloatType, T2 <: IntType, T3<:Any, T4 <: SimulationBoundaries, pType <: AbstractMDParams} <: AbstractSimObj
     u0::Array{T1, 2}
     v0::Array{T1, 2}
     mass::Array{T1, 1}
@@ -79,7 +79,7 @@ struct MDSim{T1 <: FloatType, T2 <: IntType, T3 <: PotentialParameters, T4 <: Si
     Δτ::T1
     save_every::T2
     thermo_save_every::T2
-    interatomic_potentials::Array{T3, 1}
+    interatomic_potentials::T3
     boundary_condition::T4
     others::pType
 end
@@ -93,7 +93,9 @@ function MDSim(u0, v0, mass, interatomic_potentials, boundary_condition; a_ids =
         m_ids = copy(a_ids)
     end
 
-    MDSim(u0, v0, mass, a_ids, m_ids, Types.F(Δτ), save_every, thermo_save_every, interatomic_potentials, boundary_condition, others)
+    interatomic_potentials_ = MDBase.collect_interatomic_potentials(interatomic_potentials)
+
+    MDSim(u0, v0, mass, a_ids, m_ids, Types.F(Δτ), save_every, thermo_save_every, interatomic_potentials_, boundary_condition, others)
 end
 
 function _stage(n::Types.I, sim::T, ensemble::Array{T2,1}; soode=nothing, verbose::Bool=false) where {T <: AbstractSimObj, T2 <: Ensemble}
@@ -103,7 +105,7 @@ function _stage(n::Types.I, sim::T, ensemble::Array{T2,1}; soode=nothing, verbos
 
     function SOODE(dv, v, u, p, t)
         fill!(dv, 0.0)
-        set_acceleration!(dv, v, u, params, sim)
+        set_acceleration!(dv, v, u, params)
         for ens in ensemble
             ddu!(dv, v, u, params, t, ens)
         end

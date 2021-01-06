@@ -12,7 +12,12 @@ abstract type NBodyPotential <: PotentialParameters end
 abstract type BondedPotential <: PotentialParameters end
 abstract type FieldPotentials <: PotentialParameters end
 
-struct Dummy <: PotentialParameters
+struct Dummy <: PotentialParameters end
+
+function collect_interatomic_potentials(interatomic_potentials)
+    types_ = unique([supertype(typeof(i)) for i in interatomic_potentials])
+    interatomic_potentials_ = [[j for j in interatomic_potentials if supertype(typeof(j))==i] for i in types_]
+    return interatomic_potentials_
 end
 
 @inline function potential_energy(r, pot::T) where T <: PotentialParameters

@@ -125,6 +125,10 @@ struct GeneralBC{T1 <: BCTypes, T2 <: BCTypes, T3 <: BCTypes} <: SimulationBound
     Z::T3
 end
 
+function volume(bc::GeneralBC)
+    bc.X.L*bc.Y.L*bc.Z.L
+end 
+
 function Base.show(stream::IO, BC::GeneralBC)
     println(stream, "General(Orthogonal) Boundary Condition:")
     print(stream, "\tDirection 1: "); show(stream, BC.X)
