@@ -1,4 +1,4 @@
-export AbstractSimObj, MDSim, simulate, integrator, _stage, sim_init, MDParams, SParams, MParams, AbstractMDParams, IntgParams
+export AbstractSimObj, MDParams, SParams, MParams, AbstractMDParams, IntgParams
 
 export get_acceleration, set_acceleration!, get_potential_energy
 
@@ -51,7 +51,7 @@ struct IntgParams{T1 <: Ensemble, T2 <: AbstractMDParams} <: AbstractMDParams
 end
 
 function get_acceleration(v::Array{T,2}, u::Array{T,2}, params) where {T <: FloatType}
-    dv = zeros(Types.F, size(v))
+    dv = zeros(Float64, size(v))
     set_acceleration!(dv, v, u, params)
     dv
 end
@@ -70,7 +70,7 @@ function get_potential_energy(v::Array{T,2}, u::Array{T,2}, params) where {T <: 
     pe
 end
 
-struct MDSim{T1 <: FloatType, T2 <: IntType, T3<:Any, T4 <: SimulationBoundaries, pType <: AbstractMDParams} <: AbstractSimObj
+struct SimInfo{T1 <: FloatType, T2 <: IntType, T3<:Any, T4 <: SimulationBoundaries, pType <: AbstractMDParams} <: AbstractSimObj
     u0::Array{T1, 2}
     v0::Array{T1, 2}
     mass::Array{T1, 1}
@@ -84,10 +84,10 @@ struct MDSim{T1 <: FloatType, T2 <: IntType, T3<:Any, T4 <: SimulationBoundaries
     others::pType
 end
 
-function MDSim(u0, v0, mass, interatomic_potentials, boundary_condition; a_ids = nothing, m_ids = nothing, Δτ = Types.F(1.0), save_every = Types.I(100), thermo_save_every = Types.I(100), others=NullMDParams())
+function SimInfo(u0, v0, mass, interatomic_potentials, boundary_condition; a_ids = nothing, m_ids = nothing, Δτ = Float64(1.0), save_every = Int64(100), thermo_save_every = Int64(100), others=NullMDParams())
 
     if a_ids==nothing
-        a_ids = ones(Types.I, size(u0,2))
+        a_ids = ones(Int64, size(u0,2))
         m_ids = copy(a_ids)
     elseif m_ids==nothing
         m_ids = copy(a_ids)
@@ -95,10 +95,10 @@ function MDSim(u0, v0, mass, interatomic_potentials, boundary_condition; a_ids =
 
     interatomic_potentials_ = MDBase.collect_interatomic_potentials(interatomic_potentials)
 
-    MDSim(u0, v0, mass, a_ids, m_ids, Types.F(Δτ), save_every, thermo_save_every, interatomic_potentials_, boundary_condition, others)
+    SimInfo(u0, v0, mass, a_ids, m_ids, Float64(Δτ), save_every, thermo_save_every, interatomic_potentials_, boundary_condition, others)
 end
 
-function _stage(n::Types.I, sim::T, ensemble::Array{T2,1}; soode=nothing, verbose::Bool=false) where {T <: AbstractSimObj, T2 <: Ensemble}
+function _stage(n::Int64, sim::T, ensemble::Array{T2,1}; soode=nothing, verbose::Bool=false) where {T <: AbstractSimObj, T2 <: Ensemble}
     tspan = (0.0*sim.Δτ, n*sim.Δτ)
     params = exe_at_start(n, sim)
     print_thermo_at_start(params, sim, verbose)
@@ -126,19 +126,19 @@ function _simulate(prob::T, dt::F, saveat, params) where {T,F}
     sol
 end
 
-function simulate(n::Types.I, sim::T, ensemble::Array{T2,1}; soode=nothing, verbose::Bool=false) where {T <: AbstractSimObj, T2 <: Ensemble}
+function simulate(n::Int64, sim::T, ensemble::Array{T2,1}; soode=nothing, verbose::Bool=false) where {T <: AbstractSimObj, T2 <: Ensemble}
     prob, dt, saveat, params = _stage(n, sim, ensemble, soode=soode, verbose=verbose)
     sol = solve(prob, VelocityVerlet(), dt=dt, saveat=saveat)
     params.M.step = 0
     sol, params
 end
 
-function integrator(n::Types.I, sim::T, ensemble::Array{T2,1}; verbose::Bool=false) where {T <: AbstractSimObj, T2 <: Ensemble}
+function integrator(n::Int64, sim::T, ensemble::Array{T2,1}; verbose::Bool=false) where {T <: AbstractSimObj, T2 <: Ensemble}
     prob, dt, saveat, params = _stage(n, sim, ensemble, verbose=verbose)
     init(prob, VelocityVerlet(), dt=dt, cb=mdcallbackset()), params
 end
 
-function exe_at_start(n::Types.I, sim::T) where T <: AbstractSimObj
+function exe_at_start(n::Int64, sim::T) where T <: AbstractSimObj
     if MDBase.States.FreeRun
         _exe_at_start(n, sim)
     else
@@ -146,7 +146,7 @@ function exe_at_start(n::Types.I, sim::T) where T <: AbstractSimObj
     end
 end
 
-function _exe_at_start(n::Types.I, sim::T) where T <: AbstractSimObj
+function _exe_at_start(n::Int64, sim::T) where T <: AbstractSimObj
     ux = @view sim.u0[1, :]
     uy = @view sim.u0[2, :]
     uz = @view sim.u0[3, :]
@@ -154,12 +154,12 @@ function _exe_at_start(n::Types.I, sim::T) where T <: AbstractSimObj
     vy = @view sim.v0[2, :]
     vz = @view sim.v0[3, :]
     apply_simulation_bc!(ux, uy, uz, vx, vy, vz, sim.boundary_condition)
-    N = Types.I(size(sim.u0, 2))
-    kb = Types.F(1.0)
-    mf_acc = Types.F(1.0)
-    acc = zeros(Types.F, (size(sim.u0)..., n+1))
+    N = Int64(size(sim.u0, 2))
+    kb = Float64(1.0)
+    mf_acc = Float64(1.0)
+    acc = zeros(Float64, (size(sim.u0)..., n+1))
     S = SParams(n, sim, kb, mf_acc, acc)
-    M = MParams(Types.I(0), Types.F(0), Types.F(0))
+    M = MParams(Int64(0), Float64(0), Float64(0))
     return MDParams(S, M)
 end
 
