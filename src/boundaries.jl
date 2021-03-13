@@ -127,7 +127,7 @@ end
 
 function volume(bc::GeneralBC)
     bc.X.L*bc.Y.L*bc.Z.L
-end 
+end
 
 function Base.show(stream::IO, BC::GeneralBC)
     println(stream, "General(Orthogonal) Boundary Condition:")
@@ -210,5 +210,9 @@ function lattice(BC::GeneralBC)
 end
 
 
+function plot(bc::GeneralBC)
+    l1 = [[bc.X.X0, bc.X.X0], [bc.Y.X0, bc.Y.X0], [bc.Z.X0, bc.Z.X0]]
+    print(l1)
+end
 
 #

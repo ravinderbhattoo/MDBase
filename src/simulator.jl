@@ -7,6 +7,16 @@ export @SParams_generic_fields, @MParams_generic_fields
 abstract type AbstractSimObj end
 abstract type AbstractMDParams end
 
+function Base.show(stream::IO, sol::T) where T <: ODESolution
+    for i in (:retcode, :alg)
+        print(stream, i)
+        print(stream, ": \t")
+        show(stream, getproperty(sol, i))
+        println(stream, "")
+    end
+    println("Runs: $(length(sol.t)-1)")
+end
+
 function Base.show(stream::IO, p::T) where T <: Union{AbstractSimObj,AbstractMDParams}
     println(stream, "Abstract Simulation/MD Object:")
     names = fieldnames(typeof(p))
